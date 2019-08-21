@@ -1,5 +1,6 @@
 
 import CONFIG from "./Common/Config";
+import EnumGameState from "./Common/EnumGameState";
 import EnumDisplayLevel from "./Common/EnumDisplayLevel";
 
 cc.Class({
@@ -45,23 +46,28 @@ cc.Class({
     },
 
     onLoad : function(){
+        this._gameState = EnumGameState.RUNNING;
         this._viewSize = cc.view.getVisibleSize();
         console.log("this._viewSize=====>" + this._viewSize.height);
 
-        this.node.zIndex = EnumDisplayLevel.GAMENODE;
-        this.uiNode.zIndex = EnumDisplayLevel.UINODE;
-        this.bgNode.zIndex = EnumDisplayLevel.BG;
-        this.planeNode.node.zIndex = EnumDisplayLevel.PLANE;
+        this.initUINode();
+        this.initGameNode();
         this.initBg();
         this.initPlane();
         this.initBlocks();
         this.initBonus();
         this.initScore();
         this.initBombBtn();
+
+        this.settingZIndex();
         this.registerEvent();
     },
 
     update : function(dt){
+        if(this._gameState == EnumGameState.OVER){
+            return;
+        }
+
         //bg
         this.addTravelDis();
         //bonus
@@ -75,18 +81,32 @@ cc.Class({
         this.checkExpiredBlocks();
     },
 
-    getViewSize : function(){
-        return this._viewSize;
+    settingZIndex:function(){
+        this.node.zIndex = EnumDisplayLevel.GAMENODE;
+        this.uiNode.zIndex = EnumDisplayLevel.UINODE;
+        this.bgNode.zIndex = EnumDisplayLevel.BG;
+        this.planeNode.node.zIndex = EnumDisplayLevel.PLANE;
     },
 
-    getMyplane : function(){
-        return this._myPlaneScript;
+    initUINode:function(){
+        this.uiNode.x = -this._viewSize.width*0.5;
+        this.uiNode.y = -this._viewSize.height*0.5;
+        this.uiNode.height = this._viewSize.height;
+    },
+
+    initGameNode:function(){
+        this.node.x = -this._viewSize.width*0.5;
+        this.node.y = -this._viewSize.height*0.5;
+        this.node.height = this._viewSize.height;
     },
 
     //初始化背景
     initBg : function(){
         var bgNode1 = cc.instantiate(this.bg1Prefab);
         var bgNode2 = cc.instantiate(this.bg2Prefab);
+        bgNode1.height = this._viewSize.height + 10;
+        bgNode2.height = this._viewSize.height + 10;
+        bgNode1.y = 0;
         bgNode2.y = this._viewSize.height;
         this.bgNode.addChild(bgNode1);
         this.bgNode.addChild(bgNode2);
@@ -124,7 +144,7 @@ cc.Class({
 
     //初始化btn
     initBombBtn:function(){
-        this.bombBtn.node.on('click', function (button) {
+        this.bombBtn.node.on('click', (button) => {
             cc.log("this.bombBtn=Click=====>");
             var curBgIndex = this._bgScripts[0].node.y < this._bgScripts[1].node.y ? 0 : 1;
             this._myPlaneScript.throwBomb(this._bgScripts[curBgIndex]);
@@ -133,9 +153,12 @@ cc.Class({
 
     //注册事件
     registerEvent : function(){
+        //event
         globaldata.EventManager.Register(globaldata.EventType.PLAYER_ADDSCORE, this.onAddScore, this);
         globaldata.EventManager.Register(globaldata.EventType.UI_REFRESH, this.onRefreshUI_Bomb, this);
         globaldata.EventManager.Register(globaldata.EventType.BOMB_EXPLOSION, this.onExplosionBomb, this);
+        globaldata.EventManager.Register(globaldata.EventType.GAMEOVER, this.onGameOver, this);
+        globaldata.EventManager.Register(globaldata.EventType.BLOCK_REMOVE, this.onRemoveBlock, this);
         //about touch
         this.touchNode.on(cc.Node.EventType.TOUCH_START, this.onTouchStart.bind(this))
         this.touchNode.on(cc.Node.EventType.TOUCH_MOVE, this.onTouchMove.bind(this))
@@ -166,6 +189,27 @@ cc.Class({
         cc.log("onRefreshUI_Bomb=====>" + bombCnt);
         this.bombCntLabel.string = "x " + bombCnt;
     },
+
+    //炸弹爆炸
+    onExplosionBomb: function(bombCnt){
+        if(this._blockNodeList.length > 0){
+            this._blockManger.clearBlocksByCont(this._blockNodeList, 1, this._myPlaneScript.getPos().y);
+        }
+        this.onRefreshUI_Bomb(bombCnt);
+    },
+
+    //游戏结束回调
+    onGameOver:function(){
+        if(this._gameState == EnumGameState.RUNNING){
+            this._gameState = EnumGameState.OVER;
+            cc.director.loadScene("GameOverScene");
+        }
+    },
+
+    //删除一个block
+    onRemoveBlock: function(blockId){
+        this._blockNodeList.splice(blockId, 1);
+    },
     //-----About Blocks Begin-----//
     //move
     moveBlock : function(blockNode){
@@ -182,7 +226,7 @@ cc.Class({
             return;
         }
 
-        this._genInterval_blocks = Math.random()*CONFIG.INTERVAL_GEN_BLOCKS + 2;
+        this._genInterval_blocks = Math.floor(Math.random()*CONFIG.INTERVAL_GEN_BLOCKS) + 2;
         var list = [];
         if(this._blockManger.genOneRowBlocks(list)){
             cc.log("checkGenBlocks=====>" + list.length);
@@ -190,7 +234,7 @@ cc.Class({
                 var blockNode = list[i];
                 blockNode.parent = this.node;
                 blockNode.zIndex = EnumDisplayLevel.BLOCK;
-                blockNode.x = i*blockNode.width;
+                blockNode.x = i*blockNode.width + blockNode.width*0.5;
                 blockNode.y = this._viewSize.height*1.2;
                 this._blockNodeList.push(blockNode);
                 this.moveBlock(blockNode);
@@ -217,20 +261,19 @@ cc.Class({
             var blockNode = this._blockNodeList[i];
             var blockScript = blockNode.getComponent("BlockScript");
             blockScript.checkCollision_plane(this._myPlaneScript)
-            blockScript.checkCollision_bullet(this._myPlaneScript.getBulletManager().getAlivedBullets())
+            blockScript.checkCollision_bullet(i, this._myPlaneScript.getBulletManager().getAlivedBullets())
         }
-    },
-
-    //炸弹爆炸
-    onExplosionBomb: function(bombCnt){
-        if(this._blockNodeList.length > 0){
-            this._blockManger.clearBlocksByCont(this._blockNodeList, 3, this._myPlaneScript.getPos().y);
-        }
-        onRefreshUI_Bomb(bombCnt);
     },
     //-----About Blocks End ------//
 
     //-----About Bonus Begin -----//
+    //移动bonus
+    moveBonus : function(){
+        for(let i = 0;i< this._bonusList.length;i++){
+            this._bonusList[i].y -= CONFIG.DIS_BONUS;
+        }
+    },
+
     //检查生成bonus
     checkGenBonus:function(dt){
         if(this._genInterval_bonus > 0){
@@ -242,7 +285,7 @@ cc.Class({
         if(bonusNode){
             bonusNode.parent = this.node;
             bonusNode.zIndex = EnumDisplayLevel.BONUS;
-            bonusNode.x = Math.floor(Math.random()*(this._viewSize.width - bonusNode.width)) + bonusNode.width;
+            bonusNode.x = Math.floor(Math.random()*(this._viewSize.width - bonusNode.width*0.5)) + bonusNode.width*0.5;
             bonusNode.y = this._viewSize.height * 1.5;
             this._bonusList.push(bonusNode);
         }
@@ -265,20 +308,13 @@ cc.Class({
     checkBonusCollision:function(){
         for(let i = 0;i< this._bonusList.length;i++){
             var bonusNode = this._bonusList[i];
-            var rect1 = new cc.Rect(bonusNode.x, bonusNode.y, bonusNode.width, bonusNode.height);
+            var rect1 = new cc.Rect(bonusNode.x - bonusNode.width*0.5, bonusNode.y - bonusNode.height*0.5, bonusNode.width, bonusNode.height);
             if(rect1.intersects(this._myPlaneScript.getRect())){
                 var BonusType = bonusNode.getComponent("BonusScript").getBonusType();
                 this._myPlaneScript.onGetBonus(BonusType);
                 bonusNode.removeFromParent();
                 this._bonusList.splice(i, 1);
             }
-        }
-    },
-
-    //移动bonus
-    moveBonus : function(){
-        for(let i = 0;i< this._bonusList.length;i++){
-            this._bonusList[i].y -= CONFIG.DIS_BONUS;
         }
     },
     //-----About Bonus End -----//

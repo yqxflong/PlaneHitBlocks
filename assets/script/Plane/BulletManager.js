@@ -30,10 +30,15 @@ export default class BulletManager{
     }
 
     getAlivedBullets(){
-        return this._alivedBullets_ver;
+        return [this._alivedBullets_ver, this._alivedBullets_left, this._alivedBullets_right];
+    }
+
+    getBulletType(){
+        return this._myBulletType;
     }
 
     changeBulletType(bulletType){
+        cc.log("changeBulletType=====>" + bulletType);
         this._myBulletType = bulletType;
     }
 

@@ -12,12 +12,13 @@ cc.Class({
     onLoad : function(){
         this._viewSize = cc.view.getVisibleSize();
         this._bulletManager = new BulletManager(this);
-        this._myBulletType = BULLET_TYPE.NORMAL;
         this._moveState = EnumPlaneMoveState.STOP;
+        this._superLeftTime = 0;
     },
 
     update : function(dt){
         this._bulletManager.update(dt);
+        this.checkSuperBulletLeftTime(dt);
     },
 
     getPos:function(){
@@ -25,7 +26,7 @@ cc.Class({
     },
 
     getRect:function(){
-        return new cc.Rect(this.node.x, this.node.y, this.node.width, this.node.height);
+        return new cc.Rect(this.node.x - this.node.width*0.5, this.node.y - this.node.height*0.5, this.node.width, this.node.height);
     },
 
     getBulletManager:function(){
@@ -46,6 +47,18 @@ cc.Class({
         globaldata.EventManager.Emit(globaldata.EventType.BOMB_EXPLOSION, globaldata.PlayerData.getMyBombCnt());
     },
 
+    //检测超级子单剩余时间
+    checkSuperBulletLeftTime:function(dt){
+        if(this._bulletManager.getBulletType() != EnumBulletType.SUPER){
+            return;
+        }
+
+        this._superLeftTime -= dt;
+        if(this._superLeftTime <= 0){
+            this.changeBulletType(EnumBulletType.NORMAL);
+        }
+    },
+
     //死亡回调
     onDie:function(){
         this.node.removeFromParent();
@@ -59,10 +72,9 @@ cc.Class({
         this.node.stopAllActions();
         this._moveState = EnumPlaneMoveState.LEFT;
 
-        var limitLeft = this.node.width;
+        var limitLeft = this.node.width*0.5;
         if(this.node.x > limitLeft){
             var during = Math.abs(limitLeft - this.node.x) / CONFIG.DIS_PLANE_SPEED;
-            cc.log("MyPlaneScript=onMoveLeft=====>" + during);
             var moveto = cc.moveTo(during, cc.v2(limitLeft, this.node.y));
             this.node.runAction(moveto);
         }
@@ -76,10 +88,9 @@ cc.Class({
         this.node.stopAllActions();
         this._moveState = EnumPlaneMoveState.RIGHT;
 
-        var limitRight = this._viewSize.width;
+        var limitRight = this._viewSize.width - this.node.width*0.5;
         if(this.node.x < limitRight){
             var during = Math.abs(limitRight - this.node.x) / CONFIG.DIS_PLANE_SPEED;
-            cc.log("MyPlaneScript=onMoveRight=====>" + during);
             var moveto = cc.moveTo(during, cc.v2(limitRight, this.node.y));
             this.node.runAction(moveto);
         }
@@ -102,6 +113,7 @@ cc.Class({
         }else{
             cc.log("MyPlaneScript=onGetBonus=====>else");
             this.changeBulletType(EnumBulletType.SUPER);
+            this._superLeftTime = CONFIG.DURING_BONUS_SUPERBULLET;
         }
     }
 

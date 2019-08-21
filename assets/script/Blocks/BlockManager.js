@@ -96,20 +96,23 @@ export default class BlockManager{
     }
     
     //清除坐标minY之上的cnt个blocks
-    clearBlocksByCont(list, cnt, minY){
+    clearBlocksByCont(list, rowCnt, minY){
         var total = 0;
+        var firstY = 0;
         for(let i = 0; i < list.length;){
             var blockNode = list[i];
+
+            if(firstY != 0 && firstY != blockNode.y){
+                break;
+            }
+
             if(blockNode.y > minY){
+                firstY = blockNode.y;
                 blockNode.removeFromParent();
                 list.splice(i,1);
                 total++;
             }else{
                 i++;
-            }
-
-            if(total == cnt){
-                break;
             }
         }
     }

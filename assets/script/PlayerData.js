@@ -1,5 +1,9 @@
 export default class PlayerData{
     constructor(){
+        this.resetAllData();
+    }
+
+    resetAllData(){
         this._myTraveDis = 0;
         this._myScore = 0;
         this._myBombCnt = 0;
