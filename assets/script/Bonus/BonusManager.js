@@ -52,11 +52,9 @@ export default class BonusManager{
         var tp = this.randomBonusType();
         if(tp == EnumBonusType.SUPERBULLET){
             var bonusNode = cc.instantiate(this._superbulletPrefab);
-            bonusNode.zIndex = EnumDisplayLevel.BONUS;
             return bonusNode;
         }else if(tp == EnumBonusType.BOMB){
             var bonusNode = cc.instantiate(this._bombPrefab);
-            bonusNode.zIndex = EnumDisplayLevel.BONUS;
             return bonusNode;
         }
 

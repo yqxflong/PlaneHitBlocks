@@ -38,11 +38,10 @@ export default class BlockManager{
         var blockNode = cc.instantiate(blockPrefab);
 
         if(blockNode){
-            blockNode.zIndex = EnumDisplayLevel.BLOCK;
             var dis = globaldata.PlayerData.getMyTravelDis();
             var hp = Math.random()*(5*(dis*0.002 + 1)) + 5;
             var script = blockNode.getComponent("BlockScript");
-            script.setHp(hp);
+            script.setHp(Math.floor(hp));
         }else{
             cc.error("BlockManger=genOneBlock=====>Error!blockNode is Null!!");
         }

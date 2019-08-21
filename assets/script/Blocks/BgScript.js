@@ -14,7 +14,6 @@ cc.Class({
         this.node.y -= dis;
 
         if(this.node.y <= -this._viewSize.height){
-            this.refreshBlocks();
             this.node.y = this._viewSize.height;
         }
     },

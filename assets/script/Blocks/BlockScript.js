@@ -18,12 +18,17 @@ cc.Class({
     //查看子弹碰撞
     checkCollision_bullet : function(alivedBullets){
         var deCnt = 0;
-        for(let i = 0;i<alivedBullets.length;i++){
+        for(let i = 0;i<alivedBullets.length;){
             var bulletNode = alivedBullets[i];
             var rect1 = new cc.Rect(this.node.x, this.node.y, this.node.width, this.node.height);
             var rect2 = new cc.Rect(bulletNode.x, bulletNode.y, bulletNode.width, bulletNode.height);
+            cc.log("checkCollision_bullet=====>" + rect1 + "=" + rect2);
             if(rect1.intersects(rect2)){
                 deCnt++;
+                bulletNode.removeFromParent();
+                alivedBullets.splice(i, 1);
+            }else{
+                i++;
             }
         }
         this.decreaseHp(deCnt);
@@ -51,8 +56,8 @@ cc.Class({
             this._hp--;
             this.onRefreshUI();
             globaldata.EventManager.Emit(globaldata.EventType.PLAYER_ADDSCORE, 1);
-            if(this._hp == 0){
-                onDie();
+            if(this._hp <= 0){
+                this.onDie();
                 break;
             }
         }
@@ -60,12 +65,14 @@ cc.Class({
 
     //死亡回调
     onDie : function(){
+        cc.log("BlockScript=onDie=====>");
         this.node.removeFromParent();
     },
 
     //
     onRefreshUI : function(){
-        this.lbHp.text = "" + this._hp;
+        cc.log("BlockScript=onRefreshUI=====>" + this._hp);
+        this.lbHp.string = this._hp;
     },
 
 });

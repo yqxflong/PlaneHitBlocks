@@ -65,15 +65,14 @@ cc.Class({
         //bg
         this.addTravelDis();
         //bonus
+        this.checkGenBonus(dt);
         this.moveBonus();
         this.checkBonusCollision();
         this.checkExpiredBonus();
-        this.checkGenBonus(dt);
         //blocks
-        this.moveBlocks();
+        this.checkGenBlocks(dt);
         this.checkBlocksCollision();
         this.checkExpiredBlocks();
-        this.checkGenBlocks();
     },
 
     getViewSize : function(){
@@ -107,7 +106,7 @@ cc.Class({
     initBlocks:function(){
         this._blockManger = globaldata.BlockManager;
         this._blockNodeList = [];
-        this._genInterval_blocks = CONFIG.INTERVAL_GEN_BLOCKS;
+        this._genInterval_blocks = 0;
     },
 
     //初始化Bonus
@@ -169,11 +168,11 @@ cc.Class({
     },
     //-----About Blocks Begin-----//
     //move
-    moveBlocks : function(){
-        for(let i = 0; i < this._blockNodeList.length;){
-            var blockNode = this._blockNodeList[i];
-            blockNode.y -= CONFIG.DIS_BLOCK;
-        }
+    moveBlock : function(blockNode){
+        var during = (blockNode.y + this._viewSize.height*0.5) / CONFIG.DIS_BLOCK_SPEED;
+        cc.log("moveBlocks=====>" + during);
+        var moveto = cc.moveTo(during, cc.v2(blockNode.x, -this._viewSize.height*0.5));
+        blockNode.runAction(moveto);
     },
     
     //检测生成blocks
@@ -183,15 +182,18 @@ cc.Class({
             return;
         }
 
-        this._genInterval_blocks = CONFIG.INTERVAL_GEN_BLOCKS;
+        this._genInterval_blocks = Math.random()*CONFIG.INTERVAL_GEN_BLOCKS + 2;
         var list = [];
         if(this._blockManger.genOneRowBlocks(list)){
+            cc.log("checkGenBlocks=====>" + list.length);
             for(let i = 0; i< list.length;i++){
                 var blockNode = list[i];
-                this._blockNodeList.push(blockNode);
-                this.node.addChild(blockNode);
+                blockNode.parent = this.node;
+                blockNode.zIndex = EnumDisplayLevel.BLOCK;
                 blockNode.x = i*blockNode.width;
-                blockNode.y = this._blockRow1_posY;
+                blockNode.y = this._viewSize.height*1.2;
+                this._blockNodeList.push(blockNode);
+                this.moveBlock(blockNode);
             }
         }
     },
@@ -212,12 +214,10 @@ cc.Class({
     //检测Blocks碰撞
     checkBlocksCollision: function(){
         for(let i = 0; i < this._blockNodeList.length;i++){
-            var blocks = this._blockNodeList[i];
-            for(let j = 0; j< blocks.length;j++){
-                var blockScript = blocks[j].getComponent("BlockScript");
-                blockScript.checkCollision_plane(this._myPlaneScript)
-                blockScript.checkCollision_bullet(this,_myPlaneScript.getBulletManager().getAlivedBullets())
-            }
+            var blockNode = this._blockNodeList[i];
+            var blockScript = blockNode.getComponent("BlockScript");
+            blockScript.checkCollision_plane(this._myPlaneScript)
+            blockScript.checkCollision_bullet(this._myPlaneScript.getBulletManager().getAlivedBullets())
         }
     },
 
@@ -240,10 +240,11 @@ cc.Class({
         this._genInterval_bonus = CONFIG.INTERVAL_GEN_BONUS;
         var bonusNode = globaldata.BonusManager.genBonus();
         if(bonusNode){
-            this._bonusList.push(bonusNode);
             bonusNode.parent = this.node;
+            bonusNode.zIndex = EnumDisplayLevel.BONUS;
             bonusNode.x = Math.floor(Math.random()*(this._viewSize.width - bonusNode.width)) + bonusNode.width;
             bonusNode.y = this._viewSize.height * 1.5;
+            this._bonusList.push(bonusNode);
         }
     },
 

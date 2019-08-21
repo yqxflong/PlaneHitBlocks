@@ -26,7 +26,7 @@ export default class BulletManager{
     update(dt){
         this.emissionBulletOnce(dt);
         this.moveBullets(dt);
-        this.checkBulletsAlived();
+        this.checkBulletsExpired();
     }
 
     getAlivedBullets(){
@@ -37,10 +37,10 @@ export default class BulletManager{
         this._myBulletType = bulletType;
     }
 
-    checkBulletsAlived(){
+    checkBulletsExpired(){
         for(var i = 0;i<this._alivedBullets_ver.length;){
             var bulletNode = this._alivedBullets_ver[i];
-            if(bulletNode.y >= this._viewSize.height){
+            if(bulletNode.y >= this._viewSize.height * 0.9){
                 bulletNode.removeFromParent();
                 this._alivedBullets_ver.splice(i, 1);
             }else{
@@ -49,7 +49,7 @@ export default class BulletManager{
         }
         for(var i = 0;i<this._alivedBullets_left.length;){
             var bulletNode = this._alivedBullets_left[i];
-            if(bulletNode.y >= this._viewSize.height){
+            if(bulletNode.y >= this._viewSize.height * 0.9){
                 bulletNode.removeFromParent();
                 this._alivedBullets_left.splice(i, 1);
             }else{
@@ -58,7 +58,7 @@ export default class BulletManager{
         }
         for(var i = 0;i<this._alivedBullets_right.length;){
             var bulletNode = this._alivedBullets_right[i];
-            if(bulletNode.y >= this._viewSize.height){
+            if(bulletNode.y >= this._viewSize.height * 0.9){
                 bulletNode.removeFromParent();
                 this._alivedBullets_right.splice(i, 1);
             }else{
